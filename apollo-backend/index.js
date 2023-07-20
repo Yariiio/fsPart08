@@ -1,6 +1,8 @@
 const { ApolloServer } = require('@apollo/server')
 const { startStandaloneServer } = require('@apollo/server/standalone')
-const { v1: uuid } = require('uuid')
+const resolvers = require('./resolvers')
+const typeDefs = require('./typedefs')
+const connectDB = require('./db')
 
 let authors = [
     {
@@ -97,81 +99,8 @@ let books = [
 /*
   you can remove the placeholder query once your first own has been implemented 
 */
-
-const typeDefs = `
-type Book {
-    title: String!
-    author: String
-    published: Int!
-    genres: [String]
-    id: ID
-  }
-
-  type Author {
-    name: String!
-    bookCount: Int!
-    born: Int
-    id: ID
-  }
-
-  type Mutation {
-    addBook (title: String!, author: String!, published: Int!, genres: [String]): Book!
-    editAuthor (author: String!, setBornTo: Int!): Author
-  }
-
-  type Query {
-    bookCount: Int!
-    authorCount: Int!
-    allBooks (author: String, genre: String): [Book!]!
-    allAuthors: [Author!]!
-  }
-`
-
-const resolvers = {
-    Query: {
-        bookCount: () => books.length,
-        authorCount: () => authors.length,
-        allBooks: (root, args) => {
-            if (args.author) {
-                return books.filter((book) => book.author === args.author)
-            }
-            if (args.genre) {
-                return books.filter((book) => book.genres.includes(args.genre))
-            }
-            return books
-        },
-        allAuthors: () => authors,
-    },
-
-    Author: {
-        bookCount: (root) =>
-            books.filter((book) => book.author === root.name).length,
-    },
-    Mutation: {
-        addBook: (root, args) => {
-            const allAuthors = authors.map((author) => author.name)
-            if (!allAuthors.includes(args.author)) {
-                const author = { name: args.author, id: uuid(), born: null }
-                authors = authors.concat(author)
-            }
-
-            const book = { ...args, id: uuid() }
-            books = books.concat(book)
-            return book
-        },
-
-        editAuthor: (root, args) => {
-            const foundAuthor = authors.find(
-                (author) => author.name === args.author
-            )
-            if (foundAuthor) {
-                foundAuthor.born = args.setBornTo
-                return foundAuthor
-            }
-            return null
-        },
-    },
-}
+// connect to database
+connectDB()
 
 const server = new ApolloServer({
     typeDefs,
