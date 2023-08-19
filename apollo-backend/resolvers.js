@@ -11,7 +11,7 @@ const resolvers = {
         authorCount: async () => Author.collection.countDocuments(),
         allBooks: async (root, args) => {
             if (args.genre) {
-                return Book.find({ genres: [args.genre] })
+                return Book.find({ genres: args.genre })
             }
             return Book.find({})
         },
@@ -108,8 +108,9 @@ const resolvers = {
                 username: args.username,
                 favoriteGenre: args.favoriteGenre,
             })
-
-            return user.save().catch((error) => {
+            try {
+                return user.save()
+            } catch (error) {
                 throw new GraphQLError('creating the user failed', {
                     extensions: {
                         code: 'BAD_USER_INPUT',
@@ -117,7 +118,7 @@ const resolvers = {
                         error,
                     },
                 })
-            })
+            }
         },
         login: async (root, args) => {
             const user = await User.findOne({ username: args.username })
@@ -134,7 +135,9 @@ const resolvers = {
                 id: user._id,
             }
 
-            return { value: jwt.sign(userForToken, process.env.SECRET) }
+            return {
+                value: jwt.sign(userForToken, process.env.SECRET),
+            }
         },
     },
 }

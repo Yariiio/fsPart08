@@ -8,7 +8,7 @@ const Authors = (props) => {
     const [born, setBorn] = useState('')
     const [name, setName] = useState('')
 
-    const authors = useQuery(ALL_AUTHORS)
+    const { loading, data } = useQuery(ALL_AUTHORS)
     const [editAuthor] = useMutation(EDIT_AUTHOR, {
         refetchQueries: [{ query: ALL_AUTHORS }],
     })
@@ -17,12 +17,12 @@ const Authors = (props) => {
         return null
     }
 
-    if (authors.loading) return <div>loading...</div>
+    if (loading) return <div>loading...</div>
 
     //Options for Select tag
     const options = () => {
         const result = []
-        const authorsArr = authors.data.allAuthors.map((author) => author.name)
+        const authorsArr = data.allAuthors.map((author) => author.name)
         authorsArr.forEach((a) => result.push({ value: a, label: a }))
         return result
     }
@@ -45,7 +45,7 @@ const Authors = (props) => {
                         <th>born</th>
                         <th>books</th>
                     </tr>
-                    {authors.data.allAuthors.map((a) => (
+                    {data.allAuthors.map((a) => (
                         <tr key={a.name}>
                             <td>{a.name}</td>
                             <td>{a.born}</td>
