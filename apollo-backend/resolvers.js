@@ -4,6 +4,9 @@ const Author = require('./models/author')
 const User = require('./models/user')
 const { GraphQLError } = require('graphql')
 const jwt = require('jsonwebtoken')
+const { PubSub } = require('graphql-subscriptions')
+const author = require('./models/author')
+const pubsub = new PubSub()
 
 const resolvers = {
     Query: {
@@ -15,16 +18,26 @@ const resolvers = {
             }
             return Book.find({})
         },
-        allAuthors: async () => Author.find({}),
+        allAuthors: async () => {
+            const authors = await Author.find({})
+            const books = await Book.find({}).populate('author')
+
+            return authors.map((a) => {
+                return {
+                    name: a.name,
+                    born: a.born,
+                    id: a._id,
+                    bookCount: books.filter(
+                        (book) => book.author.name === a.name
+                    ).length,
+                }
+            })
+        },
         me: (root, args, context) => {
             return context.currentUser
         },
     },
 
-    Author: {
-        bookCount: async (root) =>
-            (await Book.find({ author: root._id })).length,
-    },
     Book: {
         author: async (root) => {
             return Author.findOne({ _id: root.author })
@@ -46,21 +59,24 @@ const resolvers = {
                 }
                 if (!existingAuthor) {
                     const newAuthor = new Author({ name: args.author })
+                    const book = new Book({ ...args, author: newAuthor })
                     try {
                         await newAuthor.save()
-                        const book = new Book({ ...args, author: newAuthor })
-                        return book.save()
+                        await book.save()
                     } catch (error) {
                         throw new GraphQLError(error.message, {
                             extensions: {
                                 invalidArgs: args,
+                                error,
                             },
                         })
                     }
+                    pubsub.publish('BOOK_ADDED', { bookAdded: book })
+                    return book
                 } else {
                     const book = new Book({ ...args, author: existingAuthor })
                     try {
-                        return book.save()
+                        await book.save()
                     } catch (error) {
                         throw new GraphQLError(error.message, {
                             extensions: {
@@ -68,6 +84,8 @@ const resolvers = {
                             },
                         })
                     }
+                    pubsub.publish('BOOK_ADDED', { bookAdded: book })
+                    return book
                 }
             } else {
                 throw new GraphQLError('not authenticated', {
@@ -138,6 +156,12 @@ const resolvers = {
             return {
                 value: jwt.sign(userForToken, process.env.SECRET),
             }
+        },
+    },
+
+    Subscription: {
+        bookAdded: {
+            subscribe: () => pubsub.asyncIterator('BOOK_ADDED'),
         },
     },
 }

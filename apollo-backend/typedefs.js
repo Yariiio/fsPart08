@@ -37,6 +37,10 @@ type Book {
     allBooks (author: String, genre: String): [Book!]!
     allAuthors: [Author!]!
     me: User
-  }  
+  } 
+
+  type Subscription {
+    bookAdded: Book!
+  }
 `
 module.exports = typeDefs

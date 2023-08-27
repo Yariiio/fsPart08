@@ -1,9 +1,17 @@
+import { useEffect } from 'react'
 import { useQuery } from '@apollo/client'
 import { ALL_BOOKS, ME } from '../queries'
 
-const FavoriteGenre = ({ show }) => {
-    const currentUser = useQuery(ME, { pollInterval: 500 })
+const FavoriteGenre = ({ show, token }) => {
+    const currentUser = useQuery(ME)
     const books = useQuery(ALL_BOOKS)
+
+    useEffect(() => {
+        currentUser.startPolling(200)
+        setTimeout(() => {
+            currentUser.stopPolling()
+        }, 2000)
+    }, [token]) // eslint-disable-line
 
     if (currentUser.loading) return <div>loading...</div>
 

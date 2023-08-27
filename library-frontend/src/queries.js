@@ -22,7 +22,6 @@ export const ALL_BOOKS = gql`
                 born
             }
             genres
-            id
         }
     }
 `
@@ -72,6 +71,21 @@ export const ME = gql`
         me {
             username
             favoriteGenre
+        }
+    }
+`
+
+export const BOOK_ADDED = gql`
+    subscription {
+        bookAdded {
+            title
+            published
+            genres
+            author {
+                name
+                bookCount
+                born
+            }
         }
     }
 `

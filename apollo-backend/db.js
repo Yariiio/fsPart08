@@ -12,6 +12,8 @@ const connectDB = () => {
         .catch((error) => {
             console.log('Can not connect to database', error.message)
         })
+
+    mongoose.set('debug', true)
 }
 
 module.exports = connectDB

@@ -1,19 +1,36 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Authors from './components/Authors'
 import Books from './components/Books'
 import NewBook from './components/NewBook'
 import LoginForm from './components/LoginForm'
 import FavoriteGenre from './components/favoriteGenre'
 import { useApolloClient } from '@apollo/client'
+import { useSubscription } from '@apollo/client'
+import { BOOK_ADDED, ALL_BOOKS } from './queries'
+
+export const updateCache = (cache, query, addedBook) => {
+    // helper that is used to eliminate saving same person twice
+    const uniqByTitle = (a) => {
+        let seen = new Set()
+        return a.filter((item) => {
+            let k = item.title
+            return seen.has(k) ? false : seen.add(k)
+        })
+    }
+
+    cache.updateQuery(query, ({ allBooks }) => {
+        return {
+            allBooks: uniqByTitle(allBooks.concat(addedBook)),
+        }
+    })
+}
 
 const App = () => {
     const [page, setPage] = useState('authors')
-    const [token, setToken] = useState(null)
+    const [token, setToken] = useState(
+        localStorage.getItem('bookapp-user-token') || null
+    )
     const client = useApolloClient()
-
-    useEffect(() => {
-        setToken(localStorage.getItem('bookapp-user-token'))
-    }, [token])
 
     const logout = () => {
         setToken(null)
@@ -21,6 +38,17 @@ const App = () => {
         client.resetStore()
         setPage('books')
     }
+
+    useSubscription(BOOK_ADDED, {
+        onData: ({ data }) => {
+            console.log(data)
+            const addedBook = data.data.bookAdded
+            window.alert(`${addedBook.title} added`)
+            setPage('books')
+
+            updateCache(client.cache, { query: ALL_BOOKS }, addedBook)
+        },
+    })
 
     return (
         <div>
@@ -47,7 +75,7 @@ const App = () => {
             <NewBook show={page === 'add'} />
 
             <LoginForm show={page === 'login'} setToken={setToken} />
-            <FavoriteGenre show={page === 'recommend'} />
+            <FavoriteGenre show={page === 'recommend'} token={token} />
         </div>
     )
 }
